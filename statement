@@ -1,0 +1,12 @@
+Consisteix en construir un SAT solver i avaluar-lo sobre el conjunt d'instàncies que s'adjunten. 
+No partirem de zero sinó que s'haurà de modificar el SAT solver que adjuntem per tal que sigui més eficient.
+Els dos aspectes on actuarem seran: millorar l'heurística de decisió i millorar la velocitat de propagació.
+Un cop modificat, s'haurà d'avaluar i comparar amb el SAT solver PicoSAT.
+
+A part del codi font, es demana una taula, on per cada instància aparegui:
+
+    - Si és satisfactible o no.
+    - Temps total, nombre total de decisions i nombre de propagacions per segon del vostre SAT solver i de PicoSAT.
+
+
+La data límit d'entrega és el diumenge 8 de març 2015 a les 23:59. Adjuntem també un arxiu "resum.txt" on apareixen els resultats obtinguts, sobre les instàncies de la pràctica, d'un SAT solver molt bàsic. L'arxiu mostra el temps que s'ha trigat en resoldre cada instància en un ordinador de la FIB, compilant amb l'opció -O3. Per tal d'aprovar la primera pràtica, considerem imprescindible obtenir temps similars als que hi apareixen. Evidentment, és factible (i recomanable) millorar aquests resultats per obtenir millor nota. 
