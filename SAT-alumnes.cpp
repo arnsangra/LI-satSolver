@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <vector>
+
+#include <time.h> 
+
 using namespace std;
 
 #define UNDEF -1
@@ -15,6 +18,8 @@ vector<int> model;
 vector<int> modelStack;
 uint indexOfNextLitToPropagate;
 uint decisionLevel;
+double t_begin;
+double t_end;
 
 
 void readClauses( ){
@@ -112,6 +117,7 @@ void checkmodel(){
 }
 
 int main(){ 
+  t_begin = clock();
   readClauses(); // reads numVars, numClauses and clauses
   model.resize(numVars+1,UNDEF);
   indexOfNextLitToPropagate = 0;  
@@ -129,11 +135,22 @@ int main(){
   // DPLL algorithm
   while (true) {
     while ( propagateGivesConflict() ) {
-      if ( decisionLevel == 0) { cout << "UNSATISFIABLE" << endl; return 10; }
+      if ( decisionLevel == 0) {
+        cout << "UNSATISFIABLE" << endl;
+        t_end = clock();
+        cout << "TIME ELAPSED: " << ((t_end - t_begin) / CLOCKS_PER_SEC) << endl;
+        return 10;
+      }
       backtrack();
     }
     int decisionLit = getNextDecisionLiteral();
-    if (decisionLit == 0) { checkmodel(); cout << "SATISFIABLE" << endl; return 20; }
+    if (decisionLit == 0) {
+      checkmodel();
+      cout << "SATISFIABLE" << endl;
+      t_end = clock();
+      cout << "TIME ELAPSED: " << ((t_end - t_begin) / CLOCKS_PER_SEC) << endl;
+      return 20;
+    }
     // start new decision level:
     modelStack.push_back(0);  // push mark indicating new DL
     ++indexOfNextLitToPropagate;
