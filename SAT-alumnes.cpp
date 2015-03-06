@@ -1,3 +1,24 @@
+/***************************************************************************************************
+*                                                                                                  *
+*                                        Lògica a la Informàtica                                   *
+*                                                                                                  *
+*                                              SAT-SOLVER                                          *
+*                                                                                                  *
+****************************************************************************************************
+*                                                                                                  *
+*                                         Arnau Sangrà Rocamora                                    *
+*                                                                                                  *
+****************************************************************************************************
+*                                                                                                  *
+*                                                                                                  *
+***************************************************************************************************/
+
+/*  TODO:
+    -Improve David solution (vectors sorted)
+    -Change penalisation increment || divide penalisations after certain interval
+    */
+
+
 #include <iostream>
 #include <stdlib.h>
 #include <algorithm>
@@ -18,9 +39,27 @@ vector<int> model;
 vector<int> modelStack;
 uint indexOfNextLitToPropagate;
 uint decisionLevel;
+
+
+
+/**************************************************************************************************/
+// OwnStructuresDefined:
 double t_begin;
 double t_end;
+int updateInterval;
 
+vector<vector<int> > clausesOnTrue;
+vector<vector<int> > clausesOnNegative;
+
+vector<int> conflictsTrueLiterals;
+vector<int> conflictsFalseLiterals;
+
+/**************************************************************************************************/
+
+void updateConflictsHeuristic (int lit) {
+  if(lit > 0) ++conflictsTrueLiterals[lit];
+  else ++conflictsFalseLiterals[-lit];
+}
 
 void readClauses( ){
   // Skip comments
@@ -32,14 +71,22 @@ void readClauses( ){
   // Read "cnf numVars numClauses"
   string aux;
   cin >> aux >> numVars >> numClauses;
-  clauses.resize(numClauses);  
+  clauses.resize(numClauses);
+
+  clausesOnTrue.resize(numVars+1);
+  clausesOnNegative.resize(numVars+1);
+  cout << "size cot / con: " << clausesOnTrue.size() << " / " << clausesOnNegative.size() << endl;
+
   // Read clauses
   for (uint i = 0; i < numClauses; ++i) {
     int lit;
-    while (cin >> lit and lit != 0) clauses[i].push_back(lit);
-  }    
+    while (cin >> lit and lit != 0) {
+      clauses[i].push_back(lit);
+      if(lit > 0) clausesOnTrue[lit].push_back(i);
+      else clausesOnNegative[-lit].push_back(i);
+    }
+  }
 }
-
 
 
 int currentValueInModel(int lit){
@@ -66,13 +113,16 @@ bool propagateGivesConflict ( ) {
       int numUndefs = 0;
       int lastLitUndef = 0;
       for (uint k = 0; not someLitTrue and k < clauses[i].size(); ++k){
-	int val = currentValueInModel(clauses[i][k]);
-	if (val == TRUE) someLitTrue = true;
-	else if (val == UNDEF){ ++numUndefs; lastLitUndef = clauses[i][k]; }
+        int val = currentValueInModel(clauses[i][k]);
+        if (val == TRUE) someLitTrue = true;
+        else if (val == UNDEF){
+          ++numUndefs;
+          lastLitUndef = clauses[i][k];
+        }
       }
       if (not someLitTrue and numUndefs == 0) return true; // conflict! all lits false
       else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef);	
-    }    
+    }
   }
   return false;
 }
@@ -90,7 +140,12 @@ void backtrack(){
   // at this point, lit is the last decision
   modelStack.pop_back(); // remove the DL mark
   --decisionLevel;
+  
+  //change with new heuristic
   indexOfNextLitToPropagate = modelStack.size();
+
+  //update penalisation
+  updateConflictsHeuristic(lit);
   setLiteralToTrue(-lit);  // reverse last decision
 }
 
@@ -116,6 +171,34 @@ void checkmodel(){
   }  
 }
 
+
+
+
+// OwnFunctions:
+int getTrueLiteralMostConflictive() {
+  int max = 0;
+  for (int i = 1; i < numVars+1; ++i) {
+    if(conflictsTrueLiterals[i] > max and currentValueInModel(i) != UNDEF) {
+      max = i;
+    }
+  }
+  return max;
+}
+
+
+int getFalseLiteralMostConflictive() {
+  int max = 0;
+  for (int i = 1; i < numVars+1; ++i) {
+    if(conflictsFalseLiterals[i] > max and currentValueInModel(i) != UNDEF) {
+      max = i;
+    }
+  }
+  return max;
+}
+
+/**************************************************************************************************/
+
+
 int main(){ 
   t_begin = clock();
   readClauses(); // reads numVars, numClauses and clauses
@@ -131,6 +214,10 @@ int main(){
       if (val == FALSE) {cout << "UNSATISFIABLE" << endl; return 10;}
       else if (val == UNDEF) setLiteralToTrue(lit);
     }
+  
+  //initLiteralsPenalisationIndexs
+  conflictsTrueLiterals.resize(numVars+1, 0);
+  conflictsFalseLiterals.resize(numVars+1, 0);
   
   // DPLL algorithm
   while (true) {
