@@ -26,7 +26,7 @@
 
 #include <time.h> 
 
-    using namespace std;
+using namespace std;
 
 #define UNDEF -1
 #define TRUE 1
@@ -62,17 +62,28 @@ void updateConflictsHeuristic (int lit) {
 }
 
 void checkInitConflictVectors () {
-    cout << "conflictsTrueLiterals size: " << endl << conflictsTrueLiterals.size() << " content is zero: ";
+    bool allright = true;
+    cout << "conflictsTrueLiterals size: " << conflictsTrueLiterals.size() << " content is zero: ";
     for (int i = 0; i < conflictsTrueLiterals.size(); ++i) {
-        if( conflictsTrueLiterals[i] != 0) cout "[False]" << endl;
-        else cout "[True]" << endl;
+        if(conflictsTrueLiterals[i] != 0) allright = false;
     }
-    cout << "conflictsFalseLiterals size: " << endl << conflictsFalseLiterals.size() << " content is zero: ";
+    if(allright) cout << "true" << endl;
+    else {
+        cout << "false" << endl;
+        allright = true;
+    }
+    cout << endl;
+    cout << "conflictsFalseLiterals size: " << conflictsFalseLiterals.size() << ", content zero: ";
     for (int i = 0; i < conflictsFalseLiterals.size(); ++i) {
-        if( conflictsFalseLiterals[i] != 0) cout "[False]" << endl;
-        else cout "[True]" << endl;
-    }
+            if(conflictsFalseLiterals[i] != 0) allright = false;
+        }
+        if(allright) cout << "true" << endl;
+        else {
+            cout << "false" << endl;
+            allright = true;
+        }
 }
+
 void readClauses () {
     // Skip comments
     char c = cin.get();
@@ -87,7 +98,7 @@ void readClauses () {
 
     clausesOnTrue.resize(numVars+1);
     clausesOnNegative.resize(numVars+1);
-    cout << "size cot / con: " << clausesOnTrue.size() << " / " << clausesOnNegative.size() << endl;
+    cout << "size clausesOnTrue / clausesOnNegative: " << clausesOnTrue.size() << " / " << clausesOnNegative.size() << endl << endl;
 
     // Read clauses
     for (uint i = 0; i < numClauses; ++i) {
@@ -166,9 +177,8 @@ void backtrack(){
 
 // Heuristic for finding the next decision literal:
 int getNextDecisionLiteral(){
-    // for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
-    //     if (model[i] == UNDEF) return i;  // returns first UNDEF var, positively
-
+    for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
+        if (model[i] == UNDEF) return i;  // returns first UNDEF var, positively
     return 0; // reurns 0 when all literals are defined
 }
 
@@ -237,7 +247,7 @@ int main(){
     
       // DPLL algorithm
     while(true) {
-        while (propagateGivesConflict()) {
+        while(propagateGivesConflict()) {
             if(decisionLevel == 0) {
                 cout << "UNSATISFIABLE" << endl;
                 t_end = clock();
