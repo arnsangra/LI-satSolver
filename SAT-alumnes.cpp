@@ -14,7 +14,6 @@
 ***************************************************************************************************/
 
 /*  TODO:
-    -Improve David solution (vectors sorted)
     -Change penalisation increment || divide penalisations after certain interval
     */
 
@@ -124,7 +123,7 @@ int getTrueLiteralMostConflictive() {
             max = i;
         }
     }
-    cout << "MAX TRUE: " << max << endl;
+    //cout << "MAX TRUE: " << max << endl;
     return max;
 }
 
@@ -136,22 +135,23 @@ int getFalseLiteralMostConflictive() {
             max = i;
         }
     }
-    cout <<  "MAX FALSE: " << max << endl;
+    //cout <<  "MAX FALSE: " << max << endl;
     return max;
 }
 
 
 int getMostConflictive () {
-    //POST: returns the most conflictive (pos/neg) literal according its activity score
+    //POST: returns the most conflictive (pos/neg) literal according its activity score.
+    // tries to detect most conflictive literals earlier.
 
     //DEBUG INFO:
     //checkConflictVectorsContent();
     int t = getTrueLiteralMostConflictive();
-    cout << "1:" << t << endl;
+    //cout << "1:" << t << endl;
     int f = getFalseLiteralMostConflictive();
-    cout << "2:" << f << endl;
+    //cout << "2:" << f << endl;
     if(conflictsTrueLiterals[t] > conflictsFalseLiterals[f]) return t;
-    else return f;
+    else return -f;
 }
 
 void readClauses () {
@@ -168,7 +168,7 @@ void readClauses () {
 
     clausesOnTrue.resize(numVars+1);
     clausesOnNegative.resize(numVars+1);
-    cout << numVars << "; " << clausesOnTrue.size() << ", " << clausesOnNegative.size() << endl;
+    // cout << numVars << "; " << clausesOnTrue.size() << ", " << clausesOnNegative.size() << endl;
 
     // Read clauses
     for (uint i = 0; i < numClauses; ++i) {
@@ -189,7 +189,7 @@ void setLiteralToTrue(int lit){
 }
 
 
-bool propagateGivesConflict ( ) {
+bool propagateGivesConflict () {
   while(indexOfNextLitToPropagate < modelStack.size()) {
         ++indexOfNextLitToPropagate;
 
@@ -236,8 +236,9 @@ void backtrack(){
 
 //************************************************* Heuristic for finding the next decision literal:
 int getNextDecisionLiteral(){
+    // TODO: improve with division of penalisations after certain time:
+    //                                  ->reduce effect of earlier penalisations made.
     return getMostConflictive();
-
     // for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
     //     if (model[i] == UNDEF) return i;  // returns first UNDEF var, positively
     // return 0; // reurns 0 when all literals are defined
@@ -266,12 +267,6 @@ int main(){
     t_begin = clock();
     readClauses(); // reads numVars, numClauses and clauses
     model.resize(numVars+1,UNDEF);
-
-    for (int i = 0; i < model.size(); ++i)
-    {
-        cout << model[i] << " ";
-    }
-
     indexOfNextLitToPropagate = 0;  
     decisionLevel = 0;
 
@@ -288,7 +283,7 @@ int main(){
     //initLiteralsPenalisationIndexs
     conflictsTrueLiterals.resize(numVars+1, 0);
     conflictsFalseLiterals.resize(numVars+1, 0);
-    checkInitConflictVectors();
+    // checkInitConflictVectors();
     
       // DPLL algorithm
     while(true) {
@@ -302,7 +297,6 @@ int main(){
             backtrack();
         }
         int decisionLit = getNextDecisionLiteral();
-        cout << "nextDecisionLiteral: " << decisionLit << endl;
         if (decisionLit == 0) {
             checkmodel();
             cout << "SATISFIABLE" << endl;
