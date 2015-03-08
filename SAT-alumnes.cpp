@@ -56,9 +56,16 @@ vector<int> conflictsFalseLiterals;
 /**************************************************************************************************/
 // OwnFunctions:
 void updateConflictsHeuristic (int lit) {
+
     if(lit == 0) cout << "LIT == 0 on updateConflictsHeuristic :(" << endl;
-    if(lit > 0) ++conflictsTrueLiterals[lit];
-    else ++conflictsFalseLiterals[-lit];
+    if(lit > 0) {
+        cout << "UPDATING LITERAL:" << lit << endl; 
+         ++conflictsTrueLiterals[lit];
+    }
+    else {
+        cout << "UPDATING LITERAL:" << lit << endl; 
+        ++conflictsFalseLiterals[-lit];
+    }
 }
 
 void checkInitConflictVectors () {
@@ -193,22 +200,83 @@ bool propagateGivesConflict () {
   while(indexOfNextLitToPropagate < modelStack.size()) {
         ++indexOfNextLitToPropagate;
 
+        cout << "modelStack dump: ";
+        for(int i = 0; i < modelStack.size(); ++i) cout << modelStack[i] << " ";
+        cout << endl;
+
         //replace with check only affected clauses
-        for(uint i = 0; i < numClauses; ++i) {
-            bool someLitTrue = false;
-            int numUndefs = 0;
-            int lastLitUndef = 0;
-            for(uint k = 0; not someLitTrue and k < clauses[i].size(); ++k) {
-                int val = currentValueInModel(clauses[i][k]);
-                if (val == TRUE) someLitTrue = true;
-                else if (val == UNDEF) {
-                    ++numUndefs;
-                    lastLitUndef = clauses[i][k];
+        cout << "modelStack.size(): " << modelStack.size() << ", accessing to: " << modelStack.size()-1 << endl;
+        int literalToCheck = modelStack[modelStack.size()-1];
+        
+        if(literalToCheck > 0) {
+            cout << "literalToCheck: " << literalToCheck << endl;
+            cout << "checking inside clausesOnNegative" << endl;
+            cout << clausesOnTrue[-literalToCheck].size() << " clauses to check" << endl;
+            for(int i = 0; i < clausesOnNegative[literalToCheck].size(); ++i) {
+                bool someLitTrue = false;
+                int numUndefs = 0;
+                int lastLitUndef = 0;
+                int c = clausesOnNegative[literalToCheck][i];
+                cout << "more specifically, c = clause num:" << c << endl;
+
+                for(int j = 0; not someLitTrue and j < clauses[c].size(); ++j) {
+                    int val = currentValueInModel(clauses[c][j]);
+                    if(val == TRUE) someLitTrue = true;
+                    else if (val == UNDEF) {
+                        ++numUndefs;
+                        lastLitUndef = clauses[c][j];
+                    }
                 }
+                if (not someLitTrue and numUndefs == 0) return true; // conflict! all lits false
+                else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef);
             }
-            if (not someLitTrue and numUndefs == 0) return true; // conflict! all lits false
-            else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef);	
         }
+        else {
+            cout << "literalToCheck: " << literalToCheck << endl;
+            cout << "checking inside clausesOnTrue" << endl;
+            cout << clausesOnTrue[-literalToCheck].size() << " clauses to check" << endl;
+            for(int i = 0; i < clausesOnTrue[-literalToCheck].size(); ++i) {
+                bool someLitTrue = false;
+                int numUndefs = 0;
+                int lastLitUndef = 0;
+                int c = clausesOnTrue[-literalToCheck][i];
+                cout << "more specifically, c = clause num:" << c << endl;
+
+                for(int j = 0; not someLitTrue and j < clauses[c].size(); ++j) {
+                    int val = currentValueInModel(clauses[c][j]);
+                    if(val == TRUE) someLitTrue = true;
+                    else if (val == UNDEF) {
+                        ++numUndefs;
+                        lastLitUndef = clauses[c][j];
+                    }
+                }
+                if (not someLitTrue and numUndefs == 0) {
+                    cout << "CONFLICT DETECTED" << endl;
+                    return true; // conflict! all lits false  
+                } 
+                else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef);
+            }
+        }
+
+
+
+        // for(uint i = 0; i < numClauses; ++i) {
+        //     bool someLitTrue = false;
+        //     int numUndefs = 0;
+        //     int lastLitUndef = 0;
+        //     for(uint k = 0; not someLitTrue and k < clauses[i].size(); ++k) {
+        //         int val = currentValueInModel(clauses[i][k]);
+        //         if (val == TRUE) someLitTrue = true;
+        //         else if (val == UNDEF) {
+        //             ++numUndefs;
+        //             lastLitUndef = clauses[i][k];
+        //         }
+        //     }
+        //     if (not someLitTrue and numUndefs == 0) return true; // conflict! all lits false
+        //     else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef);
+        // }
+
+
     }
     return false;
 }
