@@ -55,15 +55,16 @@ vector<int> conflictsTrueLiterals;
 vector<int> conflictsFalseLiterals;
 
 /**************************************************************************************************/
-
+// OwnFunctions:
 void updateConflictsHeuristic (int lit) {
+    if(lit == 0) cout << "LIT == 0 on updateConflictsHeuristic :(" << endl;
     if(lit > 0) ++conflictsTrueLiterals[lit];
     else ++conflictsFalseLiterals[-lit];
 }
 
 void checkInitConflictVectors () {
     bool allright = true;
-    cout << "conflictsTrueLiterals size: " << conflictsTrueLiterals.size() << " content is zero: ";
+    cout << "@Activity Penalisation Literals" << endl << "T.size: " << conflictsTrueLiterals.size() << " content zero: ";
     for (int i = 0; i < conflictsTrueLiterals.size(); ++i) {
         if(conflictsTrueLiterals[i] != 0) allright = false;
     }
@@ -72,16 +73,85 @@ void checkInitConflictVectors () {
         cout << "false" << endl;
         allright = true;
     }
-    cout << endl;
-    cout << "conflictsFalseLiterals size: " << conflictsFalseLiterals.size() << ", content zero: ";
+    cout << "F.size: " << conflictsFalseLiterals.size() << ", content zero: ";
     for (int i = 0; i < conflictsFalseLiterals.size(); ++i) {
             if(conflictsFalseLiterals[i] != 0) allright = false;
         }
-        if(allright) cout << "true" << endl;
-        else {
-            cout << "false" << endl;
-            allright = true;
+    if(allright) cout << "true" << endl;
+    else {
+        cout << "false" << endl;
+        allright = true;
+    }
+}
+
+
+void checkConflictVectorsContent () {
+    int max = 0;
+    cout << "conflictsTrueLiterals:" << endl;
+    for (int i = 0; i < conflictsTrueLiterals.size(); ++i) {
+        cout << "L" << i << ": " << conflictsTrueLiterals[i] << ", ";
+        if (conflictsTrueLiterals[i] >= conflictsTrueLiterals[max]) max = i;
+    }
+    cout << endl << cout << "\tmostConflictiveTrue: " << max << endl << "conflictsFalseLiterals:" << endl;
+    max = 0;
+    for (int i = 0; i < conflictsFalseLiterals.size(); ++i) {
+        cout << "lit" << i << ": " << conflictsFalseLiterals[i] << ", ";
+        if(conflictsFalseLiterals[i] >= conflictsFalseLiterals[max]) max = i;
+    }
+    cout << endl << "\tmostConflictiveFalse: " << max << endl;
+}
+
+
+
+/**************************************************************************************************/
+
+
+int currentValueInModel (int lit) {
+    //POST: returns the most conflictive literal
+    if (lit >= 0) return model[lit];
+    else {
+        if (model[-lit] == UNDEF) return UNDEF;
+        else return 1 - model[-lit];
+    }
+}
+
+
+int getTrueLiteralMostConflictive() {
+    //POST: returns the most conflictive negated literal
+    int max = 0;
+    for(int i = 1; i < numVars+1; ++i) {
+        if(conflictsTrueLiterals[i] >= conflictsTrueLiterals[max] and currentValueInModel(i) == UNDEF) {
+            max = i;
         }
+    }
+    cout << "MAX TRUE: " << max << endl;
+    return max;
+}
+
+
+int getFalseLiteralMostConflictive() {
+    int max = 0;
+    for (int i = 1; i < numVars+1; ++i) {
+        if(conflictsFalseLiterals[i] >= conflictsFalseLiterals[max] and currentValueInModel(i) == UNDEF) {
+            max = i;
+        }
+    }
+    cout <<  "MAX FALSE: " << max << endl;
+    return max;
+}
+
+
+int getMostConflictive () {
+    //POST: returns the most conflictive (pos/neg) literal according its activity score
+
+    //DEBUG INFO:
+    //checkConflictVectorsContent();
+    int t = getTrueLiteralMostConflictive();
+    cout << "1:" << t << endl;
+    int f = getFalseLiteralMostConflictive();
+    cout << "2:" << f << endl;
+    if(conflictsTrueLiterals[t] > conflictsFalseLiterals[f]) return t;
+    else return f;
 }
 
 void readClauses () {
@@ -98,7 +168,7 @@ void readClauses () {
 
     clausesOnTrue.resize(numVars+1);
     clausesOnNegative.resize(numVars+1);
-    cout << "size clausesOnTrue / clausesOnNegative: " << clausesOnTrue.size() << " / " << clausesOnNegative.size() << endl << endl;
+    cout << numVars << "; " << clausesOnTrue.size() << ", " << clausesOnNegative.size() << endl;
 
     // Read clauses
     for (uint i = 0; i < numClauses; ++i) {
@@ -108,15 +178,6 @@ void readClauses () {
             if(lit > 0) clausesOnTrue[lit].push_back(i);
             else clausesOnNegative[-lit].push_back(i);
         }
-    }
-}
-
-
-int currentValueInModel (int lit) {
-    if (lit >= 0) return model[lit];
-    else {
-        if (model[-lit] == UNDEF) return UNDEF;
-        else return 1 - model[-lit];
     }
 }
 
@@ -166,7 +227,6 @@ void backtrack(){
     modelStack.pop_back(); // remove the DL mark
     --decisionLevel;
   
-    //TODO: change with new heuristic
     indexOfNextLitToPropagate = modelStack.size();
 
     //update penalisation
@@ -174,12 +234,13 @@ void backtrack(){
     setLiteralToTrue(-lit);  // reverse last decision
 }
 
-
-// Heuristic for finding the next decision literal:
+//************************************************* Heuristic for finding the next decision literal:
 int getNextDecisionLiteral(){
-    for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
-        if (model[i] == UNDEF) return i;  // returns first UNDEF var, positively
-    return 0; // reurns 0 when all literals are defined
+    return getMostConflictive();
+
+    // for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
+    //     if (model[i] == UNDEF) return i;  // returns first UNDEF var, positively
+    // return 0; // reurns 0 when all literals are defined
 }
 
 void checkmodel () {
@@ -198,28 +259,6 @@ void checkmodel () {
 }
 
 
-// OwnFunctions:
-int getTrueLiteralMostConflictive() {
-    int max = 0;
-    for(int i = 1; i < numVars+1; ++i) {
-        if(conflictsTrueLiterals[i] > max and currentValueInModel(i) != UNDEF) {
-            max = i;
-        }
-    }
-    return max;
-}
-
-
-int getFalseLiteralMostConflictive() {
-    int max = 0;
-    for (int i = 1; i < numVars+1; ++i) {
-        if(conflictsFalseLiterals[i] > max and currentValueInModel(i) != UNDEF) {
-            max = i;
-        }
-    }
-    return max;
-}
-
 /**************************************************************************************************/
 
 
@@ -227,6 +266,12 @@ int main(){
     t_begin = clock();
     readClauses(); // reads numVars, numClauses and clauses
     model.resize(numVars+1,UNDEF);
+
+    for (int i = 0; i < model.size(); ++i)
+    {
+        cout << model[i] << " ";
+    }
+
     indexOfNextLitToPropagate = 0;  
     decisionLevel = 0;
 
@@ -257,6 +302,7 @@ int main(){
             backtrack();
         }
         int decisionLit = getNextDecisionLiteral();
+        cout << "nextDecisionLiteral: " << decisionLit << endl;
         if (decisionLit == 0) {
             checkmodel();
             cout << "SATISFIABLE" << endl;
