@@ -1,0 +1,104 @@
+%----------------------------------------------------------------------------------------
+%								  DOCUMENT CONFIGURATION
+
+% A4 paper and 11pt font size
+\documentclass[paper=a4, fontsize=11pt]{scrartcl} 
+\usepackage{lmodern}
+
+% Use 8-bit encoding that has 256 glyphs
+\usepackage[T1]{fontenc} 
+\usepackage[utf8]{inputenc}
+
+% Math packages
+\usepackage{amsfonts,amsthm,amsmath}
+
+% Language/hyphenation
+\usepackage[catalan]{babel} 
+\usepackage{authblk}
+
+% Pulls the page out a bit - makes it look better (in my opinion)
+\usepackage{a4wide}
+
+% Allows customizing section commands
+\usepackage{sectsty} 
+
+% Make all sections centered, the default font and small caps
+\allsectionsfont{\centering \normalfont\scshape} 
+\renewcommand{\thesection}{\alph{section}}
+
+% Removes paragraph indentation (not needed most of the time now)
+\usepackage{parskip}
+
+% Allows inclusion of graphics easily and configurably
+\usepackage{graphicx}
+
+% Provides commands to make subfigures (figures with (a), (b) and (c))
+\usepackage{subfigure}
+
+% Allo table recolocation
+\usepackage{float}
+\restylefloat{table}
+
+% Makes references hyperlinks in PDF output
+\usepackage{hyperref}
+
+% Provides good access to colours
+\usepackage[table,xcdraw]{xcolor}
+\definecolor{darkblue}{rgb}{0.1,0.1,0.5}
+
+\usepackage{geometry}
+\geometry{
+	a4paper,
+	total={210mm,297mm},
+	left=20mm,
+	right=20mm,
+	top=20mm,
+	bottom=20mm,
+}
+
+% Custom headers and footers
+\usepackage{fancyhdr} 
+% Makes all pages in the document conform to the custom headers and footers
+\pagestyle{fancy} 
+
+\lhead{Lògica a la Informàtica}
+\chead{}
+\rhead{Pràctica 1 \textit{Optimització d'un SAT Solver}}
+
+\fancyfoot[L]{} 					% Empty left footer
+\fancyfoot[C]{} 					% Empty center footer
+\fancyfoot[R]{\thepage} 			% Page numbering for right footer
+\renewcommand{\headrulewidth}{0.1pt} 	% Remove header underlines
+\renewcommand{\footrulewidth}{0pt} 	% Remove footer underlines
+\setlength{\headheight}{13.6pt} 	% Customize the height of the header
+
+% Vastly improves the standard formatting of captions
+\usepackage[margin=10pt,font=small,labelfont=bf, labelsep=endash]{caption}
+
+
+
+%Import the natbib package and sets a bibliography style
+\usepackage[square,numbers]{natbib}
+\bibliographystyle{abbrvnat} %plainnat, abbrvnat
+
+\usepackage{csquotes}
+
+
+%----------------------------------------------------------------------------------------
+%									 
+
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} % Create horizontal rule command with 1 argument of height
+
+\title{
+	\normalfont \normalsize 
+	\textsc{FIB, Lògica a la Informàtica} \\ [25pt] % Your university, school and/or department name(s)
+	\horrule{0.5pt} \\[0.4cm] % Thin top horizontal rule
+	\huge \textbf{Optimització d'un SAT Solver}\\Pràctica 1 % The assignment title
+	\horrule{2pt} \\[0.5cm] % Thick bottom horizontal rule
+}
+
+\author{Arnau Sangrà Rocamora}
+\date{\normalsize\today} % Today's date or a custom date
+\thispagestyle{empty}
+
+
