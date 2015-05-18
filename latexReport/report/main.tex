@@ -1,0 +1,182 @@
+\include{preamble}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+\rowcolors{2}{gray!25}{white}
+
+
+\section{Enunciat Pràctica}
+\color{darkblue}
+Consisteix en construir un SAT solver i avaluar-lo sobre el conjunt d'instàncies que s'adjunten. 
+No partirem de zero sinó que s'haurà de modificar el SAT solver que adjuntem per tal que sigui més eficient.
+Els dos aspectes on actuarem seran: millorar l'heurística de decisió i millorar la velocitat de propagació.
+Un cop modificat, s'haurà d'avaluar i comparar amb el SAT solver PicoSAT.
+
+A part del codi font, es demana una taula, on per cada instància aparegui:
+
+- Si és satisfactible o no.
+- Temps total, nombre total de decisions i nombre de propagacions per segon del vostre SAT solver i de PicoSAT.
+
+
+La data límit d'entrega és el diumenge 8 de març 2015 a les 23:59. Adjuntem també un arxiu "resum.txt" on apareixen els resultats obtinguts, sobre les instàncies de la pràctica, d'un SAT solver molt bàsic. L'arxiu mostra el temps que s'ha trigat en resoldre cada instància en un ordinador de la FIB, compilant amb l'opció -O3. Per tal d'aprovar la primera pràctica, considerem imprescindible obtenir temps similars als que hi apareixen. Evidentment, és factible (i recomanable) millorar aquests resultats per obtenir millor nota. 
+
+\color{black}
+\section{Versió per defecte}
+El programa en la seva versió per defecte, tal i com ens ve donat, és molt simple i naïve, i en conseqüència, els temps d'execució dels diferents jocs de proves proporcionats són força elevats.\\
+
+En concret, el seu sistema de propagació es basa en la comprovació de totes les clàusules per cada propagació. Així doncs, aquest serà un dels principals punts sobre els quals s'intentarà optimitzar el programa per tal de millorar-ne el rendiment ja que moltes de les comprovacions són prescindibles.\\
+
+Respecte a l'heurístic utilitzat per el programa en la versió per defecte per tal de d'escollir quin literal s'ha de propagar quan s'ha de prendre una decisió, és realment simple. El seu funcionament és merament per ordre creixent, i establint primer com a cert el valor de la variable.
+
+\section{Validació de les assignacions}
+Per tal de millorar l'estratègia de propagació que utilitza el SAT Solver, s'ha optat per mirar de reduir al màxim possible el nombre de clàusules que aquest ha de comprovar cada cop que es valida una assignació a una variable.\\
+Aixi doncs, en l'ultima versió implementada, cada cop que s'assigna un literal, ja sigui per decisió o propagació, el SAT Solver ja no comprova que totes les clàusules de la CNF són certes, sinó que només comprova aquelles clàusules on apareix el literal negat respecte el que s'ha assignat.\\
+
+Aquesta estratègia és possible gràcies a que durant la lectura de les clàusules, a la funció \texttt{readClauses()}, s'omplen dues estructures de dades addicionals anomenades \textit{clausesOnPositive} i \textit{clausesOnNegative} de mida igual al nombre de variables  les quals contenen per cada una respectivament el numero que identifica les clàusules on apareix un cada literal separats segons si estan negats o no. Amb aquesta estratègia, s'aconsegueix reduir de forma dràstica el nombre de comprovacions necessàries per tal de detectar possibles insatisfactibilitats a cada assignació.
+
+\section{Heurístic Implementat}
+Seguint amb l'objectiu de millorar el rendiment del SAT Solver, l'altra focus és l'heurístic utilitzat a l'hora de decidir quina variable assignar quan s'han realitzat totes les propagacions possibles resultants de les clàusules unitàries detectades. Si bé en la versió proposada l'heurístic consistia en anar seleccionant les variables a assignar per ordre ascendent i començant sempre per una assignació positiva, clarament es veu que aquest no ofereix bons resultats i no utilitza cap tipus d'informació sobre les variables ni l'execució del SAT Solver.\\
+
+ Així doncs, el nou heurístic implementat pretén aprofitar informació tal com és el nombre d'aparicions d'una variable en el total de clàusules així com també el nombre de vegades que l'assignació de les diferents variable genera una clàusula insatisfactible.\\
+ Més concretament, l'heurístic està basat en un vector de mida igual al nombre de variables anomenat \texttt{score} el qual conté una \textit{puntuació} que anirà canviant dinàmicament al llarg de l'execució del programa.\\
+ 
+  La puntuació de cada variable primerament s'inicia amb el nombre d'aparicions en el total de clàusules, intentant afavorir a l'inici de l'execució que les decisions es realitzin primer respecte les variables que apareixen en més clàusules i per tant són més restrictives.\\
+ L'\textit{score} també és veu alterat cada cop que es detecta una clàusula insatisfactible, incrementant en una unitat la puntuació de l'última variable que s'ha decidit i ha generat les conseqüents propagacions. D'aquesta forma es pretén afavorir la presa de decisions sobre les variables que tenen tendència a forçar més instatisfactibilitats.\\
+ 
+  No obstant, per tal d'evitar però que els increments de l'score en les variables produïts amb molta anterioritat, cada un cert nombre d'insatisfaccions detectades, es redueixen tots els \textit{scores} per una constant intentant incrementar el dinamisme de l'heurístic.\\
+
+
+
+\section{Taules}
+\begin{figure}[H]
+	\centering
+	\begin{table}[H]
+		\begin{tabular}{ccccccc}
+			\rowcolor[HTML]{C0C0C0} 
+			{\color[HTML]{000000} \textbf{Instància}} & {\color[HTML]{000000} \textbf{Decisions}} & {\color[HTML]{000000} \textbf{Prop./segon}} & {\color[HTML]{000000} \textbf{Texec.}} & {\color[HTML]{000000} \textbf{Decisions pS}}& {\color[HTML]{000000} \textbf{Prop. pS}}& {\color[HTML]{000000} \textbf{Texec. pS}} \\
+			vars-100-1 & 1 & 0 & 0,000064 & 329 & 1,189,857 & 0.007 \\
+			vars-100-2 & 47 & 292769 & 0.003969 & 373 & 1,316,142 & 0.007 \\
+			vars-100-3 & 1212 & 3886810 & 0.008128 & 577 & 2,092,142 & 0.007 \\
+			vars-100-4 & 1160 & 3391270 & 0.009137 & 694 & 2,174,250 & 0.008 \\
+			vars-100-5 & 313 & 1755590 & 0.004873 & 278 & 1,348,800 & 0.005\\
+			vars-100-6 & 928 & 3469620 & 0.007012 & 666 & 2,695,666 & 0.006\\
+			vars-100-7 & 326 & 1735630 & 0.004838 & 168 & 845,400 & 0.005\\
+			vars-100-8 & 408 & 1869960 & 0.005798 & 39 & 154,666 & 0.003\\
+			vars-100-9 & 743 & 2945880 & 0.006984 & 428 & 1,947,166 & 0.003\\
+			vars-100-10 & 1023 & 3518300 & 0.00743 & 601 & 1,980,875 & 0.008 \\                                         
+		\end{tabular}
+			\caption{Resultats jocs de proves amb 100 variables}
+	\end{table}
+
+	\label{fig:my_label}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{table}[H]
+		\begin{tabular}{ccccccc}
+			\rowcolor[HTML]{C0C0C0} 
+			{\color[HTML]{000000} \textbf{Instància}} & {\color[HTML]{000000} \textbf{Decisions}} & {\color[HTML]{000000} \textbf{Prop./segon}} & {\color[HTML]{000000} \textbf{Texec.}} & {\color[HTML]{000000} \textbf{Decisions pS}}& {\color[HTML]{000000} \textbf{Prop. pS}}& {\color[HTML]{000000} \textbf{Texec. pS}} \\
+			vars-150-1 & 4636 & 5452770 & 0.030183 & 893 & 3,202,888 & 0.009\\
+			vars-150-2 & 6609 & 5949130 & 0.039492 & 3190 & 3,737,633 & 0.030\\
+			vars-150-3 & 6223 & 6012700 & 0.036921 & 1563 & 4,154,153 & 0.013 \\
+			vars-150-4 & 7896 & 6083940 & 0.045201 & 1646 & 4,015,428 & 0.014\\
+			vars-150-5 & 14502 & 6051140 & 0.082427 & 3002 & 3,969,384 & 0.026\\
+			vars-150-6 & 1813 & 4157920 & 0.015008 & 270 & 1,531,400 & 0.005\\
+			vars-150-7 & 7698 & 5815770 & 0.045097 & 2445 & 4,375,700 & 0.020\\
+			vars-150-8 & 65 & 241675 & 0.006186 & 821 & 3,202,250 & 0.008\\
+			vars-150-9 & 21207 & 6666080 & 0.115017 & 1263 & 369,541 & 0.12\\
+			vars-150-10 & 11354 & 6074080 & 0.065744 & 3145 & 4,335,807 & 0.026 \\                               
+		\end{tabular}
+			\caption{Resultats jocs de proves amb 150 variables}
+	\end{table}
+	\label{fig:my_label2}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{table}[H]
+		\begin{tabular}{ccccccc}
+			\rowcolor[HTML]{C0C0C0} 
+			{\color[HTML]{000000} \textbf{Instància}} & {\color[HTML]{000000} \textbf{Decisions}} & {\color[HTML]{000000} \textbf{Prop./segon}} & {\color[HTML]{000000} \textbf{Texec.}} & {\color[HTML]{000000} \textbf{Decisions pS}}& {\color[HTML]{000000} \textbf{Prop. pS}}& {\color[HTML]{000000} \textbf{Texec. pS}} \\
+			vars-200-1 & 123248 & 6770670 & 0.767291 & 15518 & 4,261,198 & 0.156\\
+			vars-200-2 & 5672 & 5446250 & 0.043227 & 4558 & 4,673,857 & 0.042\\
+			vars-200-3 & 94762 & 6575660 & 0.604821 & 18580 & 4,134,848 & 0.191\\
+			vars-200-4 & 35458 & 6403410 & 0.230923 & 7299 & 4,659,560 & 0.066\\
+			vars-200-5 & 58489 & 6597170 & 0.368593 & 11554 & 4,170,610 & 0.118\\
+			vars-200-6 & 83337 & 6744580 & 0.523748 & 25253 & 3,953,875 & 0.274\\
+			vars-200-7 & 259962 & 6897430 & 1.56998 & 26315 & 3,910,893 & 0.291\\
+			vars-200-8 & 6115 & 5055230 & 0.050933 & 9299 & 4,309,215 & 0.088\\
+			vars-200-9 & 37733 & 6337920 & 0.252819 & 8293 & 4,347,089 & 0.078\\
+			vars-200-10 & 109922 & 6700080 & 0.687189 & 18609 & 3,910,330 & 0.206\\                                              
+		\end{tabular}
+			\caption{Resultats jocs de proves amb 200 variables}
+	\end{table}
+
+	\label{fig:my_label3}
+\end{figure}
+
+
+\begin{figure}[H]
+	\centering
+	\begin{table}[H]
+		\begin{tabular}{ccccccc}
+			\rowcolor[HTML]{C0C0C0} 
+			{\color[HTML]{000000} \textbf{Instància}} & {\color[HTML]{000000} \textbf{Decisions}} & {\color[HTML]{000000} \textbf{Prop./segon}} & {\color[HTML]{000000} \textbf{Texec.}} & {\color[HTML]{000000} \textbf{Decisions pS}}& {\color[HTML]{000000} \textbf{Prop. pS}}& {\color[HTML]{000000} \textbf{Texec. pS}} \\
+			vars-250-1 & 591613 & 6607450 & 4.30471 & 80183 & 3,193,658 & 1.243\\
+			vars-250-2 & 1133120 & 6663650 & 8.08544 & 123065 & 2,764,120 & 2.158\\
+			vars-250-3 & 353552 & 6617510 & 2.57711 & 55647 & 3,546,539 & 0.788\\
+			vars-250-4 & 389373 & 6632910 & 2.86677 & 24905 & 4,096,952 & 0.293\\
+			vars-250-5 & 762397 & 6794550 & 5.46722 & 104613 & 3,150,130 & 1.662\\
+			vars-250-6 & 2788005 & 6733610 & 19.0892 & 136808 & 2,835,445 & 2.411\\
+			vars-250-7 & 75634 & 6591320 & 0.566293 & 56870 & 3,473,237 & 0.818\\
+			vars-250-8 & 1119582 & 6770540 & 7.86107 & 92288 & 3,139,624 & 1.444\\
+			vars-250-9 & 281075 & 6756000 & 1.98245 & 32426 & 3,857,285 & 0.407\\
+			vars-250-10 & 95804 & 6582780 & 0.723461 & 50074 & 3,830,646 & 0.643\\
+			& & & &                                                     
+		\end{tabular}
+	\end{table}
+	\caption{Resultats jocs de proves amb 250 variables}
+	\label{fig:my_label4}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{table}[H]
+		\begin{tabular}{ccccccc}
+			\rowcolor[HTML]{C0C0C0} 
+			{\color[HTML]{000000} \textbf{Instància}} & {\color[HTML]{000000} \textbf{Decisions}} & {\color[HTML]{000000} \textbf{Prop./segon}} & {\color[HTML]{000000} \textbf{Texec.}} & {\color[HTML]{000000} \textbf{Decisions pS}}& {\color[HTML]{000000} \textbf{Prop. pS}}& {\color[HTML]{000000} \textbf{Texec. pS}} \\
+			vars-300-1 & 222922 & 6600290 & 1.8518 & 668948 & 1,720,925 & 21.600\\
+			vars-300-2 & 11869674 & 6645570 & 95.3288 & 647130 & 1,764,633 & 20.682\\
+			vars-300-3 & 4437486 & 6575140 & 35.6269 & 354511 & 2,152,673 & 9.245\\
+			vars-300-4 & 6459396 & 6647390 & 53.1182 & 479041 & 8,504,662 & 13.175\\
+			vars-300-5 & 5200357 & 6659610 & 42.162 & 580334 & 1,865,856 & 17.460\\
+			vars-300-6 & 4497411 & 6607160 & 36.7816 & 294491 & 2,465,648 & 6.802\\
+			vars-300-7 & 1228910 & 6642400 & 10.4335 & 113743 & 3,109,734 & 2.090\\
+			vars-300-8 & 18165391 & 6648830 & 141.366 & 558417 & 1,870,512 & 16.787\\
+			vars-300-9 & 1986407 & 6555800 & 1.98245 & 218985 & 2,489,743 & 5.001\\
+			vars-300-10 & 1464484 & 6671920 & 15.9706 & 261765 & 710,242 & 5.660\\                                                    
+		\end{tabular}
+	\end{table}
+	\caption{Resultats jocs de proves amb 300 variables}
+	\label{fig:my_label5}
+\end{figure}
+\begin{center}
+\textit{Els resultats s'han obtingut un ordinador amb un processador Intel Core i7-3720QM quad-core amb una freqüència de 2.6 GHz (3.6 GHz en mode TurboBoost) i 16 GB de memòria RAM.  }
+\end{center}
+
+\section{Possibles millores}
+El SAT Solver resultant d'aplicar les millores en les comprovacions de les restriccions i en l'heurístic aconsegueix uns resultats força millors en comparació amb la versió per defecte. No obstant, encara es podrien implementar algunes millores per tal d'intentar aconseguir rebaixar encara més els temps d'execució per exemple intentant afinar més el paràmetre segons el qual, al cap d'un determinat nombre de insatisfactibilitats es redueixen els score o també el propi valor segons el qual s'anivellen les puntuacions, que en el cas actual, equival a reduir a la meitat. Una altra possible millora a implementar en futures versions podria ser distingir les puntuacions de les variables segons assignacions positives i negatives. 
+
+Tot i aquestes possibles millores, en cap cas seria possible aconseguir igualar els resultats obtinguts mitjançant el picoSAT, ja que aquest utilitza tècniques molt més avançades com per exemple l'aprenentatge per tal de guanyar eficiència.
+
+
+\nocite{*}
+%Imports the bibliography file "sample.bib"
+\bibliographystyle{unsrtnat}
+\bibliography{biblio}
+
+\end{document}

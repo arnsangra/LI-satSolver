@@ -1,30 +1,21 @@
 /***************************************************************************************************
 *                                                                                                  *
 *                                        Lògica a la Informàtica                                   *
+*       -------------------------------------------------------------------------------------      *
 *                                                                                                  *
-*                                              SAT-SOLVER                                          *
+*                                        SAT-SOLVER OPTIMIZATION                                   *
+*                                       08/03/2015, Qm Primavera                                   *
+*                                                                                                  *
 *                                                                                                  *
 ****************************************************************************************************
 *                                                                                                  *
 *                                         Arnau Sangrà Rocamora                                    *
 *                                                                                                  *
-****************************************************************************************************
-*                                                                                                  *
-*                                                                                                  *
 ***************************************************************************************************/
-
-/*  TODO:
-    -Change penalisation increment || divide penalisations after certain interval
-    */
-
-
 #include <iostream>
 #include <stdlib.h>
 #include <algorithm>
 #include <vector>
-
-#include <time.h> 
-
 using namespace std;
 
 #define UNDEF -1
@@ -37,80 +28,30 @@ vector<vector<int> > clauses;
 vector<int> model;
 vector<int> modelStack;
 uint indexOfNextLitToPropagate;
+
 uint decisionLevel;
+uint decisionsMade;
+uint propagationsMade;
+int rounds;
 
 
-
-/**************************************************************************************************/
-// OwnStructuresDefined:
 double t_begin;
 double t_end;
 int updateInterval;
 
-vector<vector<int> > clausesOnTrue;
+vector<vector<int> > clausesOnPositive;
 vector<vector<int> > clausesOnNegative;
 
 vector<int> conflictsTrueLiterals;
 vector<int> conflictsFalseLiterals;
+vector<int> score;
 
 /**************************************************************************************************/
-// OwnFunctions:
+
 void updateConflictsHeuristic (int lit) {
-
-    if(lit == 0) cout << "LIT == 0 on updateConflictsHeuristic :(" << endl;
-    if(lit > 0) {
-        cout << "UPDATING LITERAL:" << lit << endl; 
-         ++conflictsTrueLiterals[lit];
-    }
-    else {
-        cout << "UPDATING LITERAL:" << lit << endl; 
-        ++conflictsFalseLiterals[-lit];
-    }
+    if(lit > 0) ++conflictsTrueLiterals[lit];
+    else ++conflictsFalseLiterals[-lit];
 }
-
-void checkInitConflictVectors () {
-    bool allright = true;
-    cout << "@Activity Penalisation Literals" << endl << "T.size: " << conflictsTrueLiterals.size() << " content zero: ";
-    for (int i = 0; i < conflictsTrueLiterals.size(); ++i) {
-        if(conflictsTrueLiterals[i] != 0) allright = false;
-    }
-    if(allright) cout << "true" << endl;
-    else {
-        cout << "false" << endl;
-        allright = true;
-    }
-    cout << "F.size: " << conflictsFalseLiterals.size() << ", content zero: ";
-    for (int i = 0; i < conflictsFalseLiterals.size(); ++i) {
-            if(conflictsFalseLiterals[i] != 0) allright = false;
-        }
-    if(allright) cout << "true" << endl;
-    else {
-        cout << "false" << endl;
-        allright = true;
-    }
-}
-
-
-void checkConflictVectorsContent () {
-    int max = 0;
-    cout << "conflictsTrueLiterals:" << endl;
-    for (int i = 0; i < conflictsTrueLiterals.size(); ++i) {
-        cout << "L" << i << ": " << conflictsTrueLiterals[i] << ", ";
-        if (conflictsTrueLiterals[i] >= conflictsTrueLiterals[max]) max = i;
-    }
-    cout << endl << cout << "\tmostConflictiveTrue: " << max << endl << "conflictsFalseLiterals:" << endl;
-    max = 0;
-    for (int i = 0; i < conflictsFalseLiterals.size(); ++i) {
-        cout << "lit" << i << ": " << conflictsFalseLiterals[i] << ", ";
-        if(conflictsFalseLiterals[i] >= conflictsFalseLiterals[max]) max = i;
-    }
-    cout << endl << "\tmostConflictiveFalse: " << max << endl;
-}
-
-
-
-/**************************************************************************************************/
-
 
 int currentValueInModel (int lit) {
     //POST: returns the most conflictive literal
@@ -121,46 +62,6 @@ int currentValueInModel (int lit) {
     }
 }
 
-
-int getTrueLiteralMostConflictive() {
-    //POST: returns the most conflictive negated literal
-    int max = 0;
-    for(int i = 1; i < numVars+1; ++i) {
-        if(conflictsTrueLiterals[i] >= conflictsTrueLiterals[max] and currentValueInModel(i) == UNDEF) {
-            max = i;
-        }
-    }
-    //cout << "MAX TRUE: " << max << endl;
-    return max;
-}
-
-
-int getFalseLiteralMostConflictive() {
-    int max = 0;
-    for (int i = 1; i < numVars+1; ++i) {
-        if(conflictsFalseLiterals[i] >= conflictsFalseLiterals[max] and currentValueInModel(i) == UNDEF) {
-            max = i;
-        }
-    }
-    //cout <<  "MAX FALSE: " << max << endl;
-    return max;
-}
-
-
-int getMostConflictive () {
-    //POST: returns the most conflictive (pos/neg) literal according its activity score.
-    // tries to detect most conflictive literals earlier.
-
-    //DEBUG INFO:
-    //checkConflictVectorsContent();
-    int t = getTrueLiteralMostConflictive();
-    //cout << "1:" << t << endl;
-    int f = getFalseLiteralMostConflictive();
-    //cout << "2:" << f << endl;
-    if(conflictsTrueLiterals[t] > conflictsFalseLiterals[f]) return t;
-    else return -f;
-}
-
 void readClauses () {
     // Skip comments
     char c = cin.get();
@@ -168,23 +69,28 @@ void readClauses () {
         while (c != '\n') c = cin.get();
         c = cin.get();
     }
+    
     // Read "cnf numVars numClauses"
     string aux;
     cin >> aux >> numVars >> numClauses;
     clauses.resize(numClauses);
 
-    clausesOnTrue.resize(numVars+1);
+    clausesOnPositive.resize(numVars+1);
     clausesOnNegative.resize(numVars+1);
-    // cout << numVars << "; " << clausesOnTrue.size() << ", " << clausesOnNegative.size() << endl;
 
     // Read clauses
     for (uint i = 0; i < numClauses; ++i) {
         int lit;
         while (cin >> lit and lit != 0) {
             clauses[i].push_back(lit);
-            if(lit > 0) clausesOnTrue[lit].push_back(i);
+            if(lit > 0) clausesOnPositive[lit].push_back(i);
             else clausesOnNegative[-lit].push_back(i);
         }
+    }
+    //initialize score according to the number of appearances among clauses.
+    score.resize(numVars, 0);
+    for(int i = 0; i < numVars; ++i) {
+        score[i] = clausesOnPositive[i+1].size() + clausesOnNegative[i+1].size();
     }
 }
 
@@ -196,89 +102,51 @@ void setLiteralToTrue(int lit){
 }
 
 
-bool propagateGivesConflict () {
-  while(indexOfNextLitToPropagate < modelStack.size()) {
-        ++indexOfNextLitToPropagate;
+bool propagateGivesConflict ( ) {
+  while (indexOfNextLitToPropagate < modelStack.size() ) {
+    int lit = modelStack[indexOfNextLitToPropagate];
+    ++indexOfNextLitToPropagate;
 
-        cout << "modelStack dump: ";
-        for(int i = 0; i < modelStack.size(); ++i) cout << modelStack[i] << " ";
-        cout << endl;
-
-        //replace with check only affected clauses
-        cout << "modelStack.size(): " << modelStack.size() << ", accessing to: " << modelStack.size()-1 << endl;
-        int literalToCheck = modelStack[modelStack.size()-1];
-        
-        if(literalToCheck > 0) {
-            cout << "literalToCheck: " << literalToCheck << endl;
-            cout << "checking inside clausesOnNegative" << endl;
-            cout << clausesOnTrue[-literalToCheck].size() << " clauses to check" << endl;
-            for(int i = 0; i < clausesOnNegative[literalToCheck].size(); ++i) {
-                bool someLitTrue = false;
-                int numUndefs = 0;
-                int lastLitUndef = 0;
-                int c = clausesOnNegative[literalToCheck][i];
-                cout << "more specifically, c = clause num:" << c << endl;
-
-                for(int j = 0; not someLitTrue and j < clauses[c].size(); ++j) {
-                    int val = currentValueInModel(clauses[c][j]);
-                    if(val == TRUE) someLitTrue = true;
-                    else if (val == UNDEF) {
-                        ++numUndefs;
-                        lastLitUndef = clauses[c][j];
-                    }
-                }
-                if (not someLitTrue and numUndefs == 0) return true; // conflict! all lits false
-                else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef);
-            }
-        }
-        else {
-            cout << "literalToCheck: " << literalToCheck << endl;
-            cout << "checking inside clausesOnTrue" << endl;
-            cout << clausesOnTrue[-literalToCheck].size() << " clauses to check" << endl;
-            for(int i = 0; i < clausesOnTrue[-literalToCheck].size(); ++i) {
-                bool someLitTrue = false;
-                int numUndefs = 0;
-                int lastLitUndef = 0;
-                int c = clausesOnTrue[-literalToCheck][i];
-                cout << "more specifically, c = clause num:" << c << endl;
-
-                for(int j = 0; not someLitTrue and j < clauses[c].size(); ++j) {
-                    int val = currentValueInModel(clauses[c][j]);
-                    if(val == TRUE) someLitTrue = true;
-                    else if (val == UNDEF) {
-                        ++numUndefs;
-                        lastLitUndef = clauses[c][j];
-                    }
-                }
-                if (not someLitTrue and numUndefs == 0) {
-                    cout << "CONFLICT DETECTED" << endl;
-                    return true; // conflict! all lits false  
-                } 
-                else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef);
-            }
-        }
-
-
-
-        // for(uint i = 0; i < numClauses; ++i) {
-        //     bool someLitTrue = false;
-        //     int numUndefs = 0;
-        //     int lastLitUndef = 0;
-        //     for(uint k = 0; not someLitTrue and k < clauses[i].size(); ++k) {
-        //         int val = currentValueInModel(clauses[i][k]);
-        //         if (val == TRUE) someLitTrue = true;
-        //         else if (val == UNDEF) {
-        //             ++numUndefs;
-        //             lastLitUndef = clauses[i][k];
-        //         }
-        //     }
-        //     if (not someLitTrue and numUndefs == 0) return true; // conflict! all lits false
-        //     else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef);
-        // }
-
-
+    vector<int>* temp;
+    if(lit > 0) {
+        temp = &clausesOnNegative[lit];
     }
-    return false;
+    else temp = &clausesOnPositive[-lit];
+    //use same loop provided but only search on clauses where the lit appears negated.
+    for (uint i = 0; i < temp->size(); ++i) {
+        bool someLitTrue = false;
+        int numUndefs = 0;
+        int lastLitUndef = 0;
+        for (uint k = 0; not someLitTrue and k < clauses[(*temp)[i]].size(); ++k){
+            int val = currentValueInModel(clauses[(*temp)[i]][k]);
+            if (val == TRUE) someLitTrue = true;
+            else if (val == UNDEF) {
+                ++numUndefs;
+                lastLitUndef = clauses[(*temp)[i]][k];
+            }
+        }
+        if (not someLitTrue and numUndefs == 0) {
+            // conflict! all lits false, increase score of deciding literal.
+            ++score[abs(lit)-1];
+            ++rounds;
+            //tip: try different number of rounds when deciding when to decrease scores.
+            //during tests 500 gave a good balance in performance.
+            if(rounds >= 500) {
+                rounds = 0;
+                for (int i = 0; i < score[i]; ++i)
+                {
+                    score[i] /= 2;
+                }
+            }
+            return true;
+        }
+        else if (not someLitTrue and numUndefs == 1) {
+            setLiteralToTrue(lastLitUndef);  
+            ++propagationsMade;
+        }
+    }    
+  }
+  return false;
 }
 
 
@@ -296,20 +164,21 @@ void backtrack(){
     --decisionLevel;
   
     indexOfNextLitToPropagate = modelStack.size();
-
-    //update penalisation
-    updateConflictsHeuristic(lit);
     setLiteralToTrue(-lit);  // reverse last decision
 }
 
 //************************************************* Heuristic for finding the next decision literal:
 int getNextDecisionLiteral(){
-    // TODO: improve with division of penalisations after certain time:
-    //                                  ->reduce effect of earlier penalisations made.
-    return getMostConflictive();
-    // for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
-    //     if (model[i] == UNDEF) return i;  // returns first UNDEF var, positively
-    // return 0; // reurns 0 when all literals are defined
+    int position  = 0;
+    int maximum = -1;
+    for(int i = 0; i < numVars; ++i) {
+        if(score[i] > maximum && model[i+1] == UNDEF){
+            maximum = score[i];
+            position = i+1; 
+        }
+    }
+    ++decisionsMade;
+    return position;
 }
 
 void checkmodel () {
@@ -327,16 +196,15 @@ void checkmodel () {
     }
 }
 
-
-/**************************************************************************************************/
-
-
-int main(){ 
+int main(){
     t_begin = clock();
     readClauses(); // reads numVars, numClauses and clauses
     model.resize(numVars+1,UNDEF);
     indexOfNextLitToPropagate = 0;  
+    rounds = 0;
     decisionLevel = 0;
+    decisionsMade = 0;
+    propagationsMade = 0;
 
     // Take care of initial unit clauses, if any
     for (uint i = 0; i < numClauses; ++i) {
@@ -348,10 +216,8 @@ int main(){
         }
     }
 
-    //initLiteralsPenalisationIndexs
     conflictsTrueLiterals.resize(numVars+1, 0);
     conflictsFalseLiterals.resize(numVars+1, 0);
-    // checkInitConflictVectors();
     
       // DPLL algorithm
     while(true) {
@@ -359,7 +225,10 @@ int main(){
             if(decisionLevel == 0) {
                 cout << "UNSATISFIABLE" << endl;
                 t_end = clock();
-                cout << "TIME ELAPSED: " << ((t_end - t_begin) / CLOCKS_PER_SEC) << endl;
+                double elap = ((t_end - t_begin) / CLOCKS_PER_SEC);
+                cout << "TIME ELAPSED: " << elap << endl;
+                cout << "DECISIONS MADE: " << decisionsMade << endl;
+                cout << "PROPAGATIONS/SECOND: " << propagationsMade/elap << endl;
                 return 10;
             }
             backtrack();
@@ -369,7 +238,10 @@ int main(){
             checkmodel();
             cout << "SATISFIABLE" << endl;
             t_end = clock();
-            cout << "TIME ELAPSED: " << ((t_end - t_begin) / CLOCKS_PER_SEC) << endl;
+            double elap = ((t_end - t_begin) / CLOCKS_PER_SEC);
+            cout << "TIME ELAPSED: " << elap << endl;
+            cout << "DECISIONS MADE: " << decisionsMade << endl;
+            cout << "PROPAGATIONS/SECOND: " << propagationsMade/elap << endl;
             return 20;
         }
         // start new decision level:
