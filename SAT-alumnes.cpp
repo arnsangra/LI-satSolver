@@ -69,7 +69,7 @@ void readClauses () {
         while (c != '\n') c = cin.get();
         c = cin.get();
     }
-    
+
     // Read "cnf numVars numClauses"
     string aux;
     cin >> aux >> numVars >> numClauses;
@@ -141,10 +141,10 @@ bool propagateGivesConflict ( ) {
             return true;
         }
         else if (not someLitTrue and numUndefs == 1) {
-            setLiteralToTrue(lastLitUndef);  
+            setLiteralToTrue(lastLitUndef);
             ++propagationsMade;
         }
-    }    
+    }
   }
   return false;
 }
@@ -162,7 +162,7 @@ void backtrack(){
     // at this point, lit is the last decision
     modelStack.pop_back(); // remove the DL mark
     --decisionLevel;
-  
+
     indexOfNextLitToPropagate = modelStack.size();
     setLiteralToTrue(-lit);  // reverse last decision
 }
@@ -174,7 +174,7 @@ int getNextDecisionLiteral(){
     for(int i = 0; i < numVars; ++i) {
         if(score[i] > maximum && model[i+1] == UNDEF){
             maximum = score[i];
-            position = i+1; 
+            position = i+1;
         }
     }
     ++decisionsMade;
@@ -200,7 +200,7 @@ int main(){
     t_begin = clock();
     readClauses(); // reads numVars, numClauses and clauses
     model.resize(numVars+1,UNDEF);
-    indexOfNextLitToPropagate = 0;  
+    indexOfNextLitToPropagate = 0;
     rounds = 0;
     decisionLevel = 0;
     decisionsMade = 0;
@@ -218,7 +218,7 @@ int main(){
 
     conflictsTrueLiterals.resize(numVars+1, 0);
     conflictsFalseLiterals.resize(numVars+1, 0);
-    
+
       // DPLL algorithm
     while(true) {
         while(propagateGivesConflict()) {
